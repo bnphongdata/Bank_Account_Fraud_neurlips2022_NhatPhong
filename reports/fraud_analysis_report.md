@@ -32,9 +32,8 @@ Tập dữ liệu NeurIPS BAF không dùng `NULL` chuẩn mà mã hóa dữ li�
   - `no_valid_phone`: Cờ cắm hồ sơ không có cả điện thoại bàn lẫn điện thoại di động hợp lệ.
   - `age_group`: Phân nhóm độ tuổi (`18-25`, `26-35`, `36-50`, `51-65`, `65+`).
 
-### 2.3 Hiệu quả lưu trữ & Tối ưu hóa bộ nhớ
-- Downcasting kiểu dữ liệu: Giảm kích thước RAM từ **213 MB xuống 53 MB** khi lưu dưới định dạng **Parquet**.
-- Tốc độ truy vấn đọc: Tăng tốc gấp **5-10 lần** so với CSV thuần.
+### 2.3 Hiệu quả lưu trữ & Định dạng xuất bản
+- Dữ liệu sạch sau khi qua pipeline xử lý sentinel và tạo biến đặc trưng được xuất ra file `data/processed/clean_base.csv` phục vụ phân tích.
 
 ---
 
@@ -89,4 +88,4 @@ Các biểu đồ chất lượng cao đã được tự động lưu trong thư
 2. **Kiểm tra OTP & Thiết bị:**
    - Chặn các đơn đăng ký có `foreign_request = 1` khi khai báo thông tin nội địa nếu không có giải trình cư trú hợp lệ.
 3. **Mô hình hóa ML kết hợp:**
-   - Sử dụng tập dữ liệu đã làm sạch `data/processed/clean_base.parquet` để huấn luyện các thuật toán phân lớp gradient boosting (LightGBM / XGBoost / CatBoost) tối ưu hóa theo chỉ số **PR-AUC** hoặc **Recall tại ngưỡng FPR = 5%**.
+   - Sử dụng tập dữ liệu đã làm sạch `data/processed/clean_base.csv` để huấn luyện các thuật toán phân lớp gradient boosting (LightGBM / XGBoost / CatBoost) tối ưu hóa theo chỉ số **PR-AUC** hoặc **Recall tại ngưỡng FPR = 5%**.

@@ -11,7 +11,7 @@ BAF/
 │
 ├── data/
 │   ├── raw/                  # Dữ liệu thô gốc (Base.csv, Variant I-V.csv)
-│   ├── processed/            # Dữ liệu sạch xuất định dạng Parquet (clean_base.parquet)
+│   ├── processed/            # Dữ liệu sạch xuất định dạng CSV (clean_base.csv)
 │   └── external/             # Bảng tra cứu phụ, từ điển dữ liệu
 │
 ├── notebooks/                # Notebooks phân tích khám phá và chuyên sâu

@@ -11,7 +11,7 @@ from src.visualization.visualize import (
 )
 
 def generate_all_charts():
-    df = pd.read_parquet("data/processed/clean_base.parquet")
+    df = pd.read_csv("data/processed/clean_base.csv")
 
     # Chuỗi thời gian theo tháng
     plot_monthly_trend(df, filename="fraud_trend_by_month.png")

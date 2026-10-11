@@ -64,18 +64,18 @@ def clean_and_transform_pipeline(raw_df: pd.DataFrame) -> pd.DataFrame:
     return downcast_dtypes(df)
 
 
-def process_and_save(dataset_name: str = "Base.csv", output_format: str = "parquet") -> Path:
+def process_and_save(dataset_name: str = "Base.csv", output_format: str = "csv") -> Path:
     PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
     raw_df = load_raw_dataset(dataset_name)
     processed_df = clean_and_transform_pipeline(raw_df)
 
     stem = Path(dataset_name).stem.replace(" ", "_").lower()
-    if output_format == "parquet":
-        output_path = PROCESSED_DATA_DIR / f"clean_{stem}.parquet"
-        processed_df.to_parquet(output_path, index=False, engine="pyarrow")
-    else:
+    if output_format == "csv":
         output_path = PROCESSED_DATA_DIR / f"clean_{stem}.csv"
         processed_df.to_csv(output_path, index=False)
+    else:
+        output_path = PROCESSED_DATA_DIR / f"clean_{stem}.parquet"
+        processed_df.to_parquet(output_path, index=False, engine="pyarrow")
 
     size_mb = output_path.stat().st_size / (1024 ** 2)
     print(f"Đã lưu tệp kết quả -> {output_path} ({size_mb:.1f} MB)")
@@ -83,4 +83,4 @@ def process_and_save(dataset_name: str = "Base.csv", output_format: str = "parqu
 
 
 if __name__ == "__main__":
-    process_and_save("Base.csv", output_format="parquet")
+    process_and_save("Base.csv", output_format="csv")
