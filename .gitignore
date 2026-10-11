@@ -25,6 +25,10 @@ data/external/*
 reports/figures/*
 !reports/figures/.gitkeep
 
+# Saved model artifacts
+models/*
+!models/.gitkeep
+
 # IDE & OS files
 .vscode/
 .idea/

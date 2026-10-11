@@ -1,4 +1,4 @@
-# 📑 BÁO CÁO PHÂN TÍCH DỮ LIỆU & PHÁT HIỆN GIAN LẬN MỞ TÀI KHOẢN NGÂN HÀNG
+# BÁO CÁO PHÂN TÍCH DỮ LIỆU & PHÁT HIỆN GIAN LẬN MỞ TÀI KHOẢN NGÂN HÀNG
 **Dự án:** Bank Account Fraud (NeurIPS 2022)  
 **Tập dữ liệu:** `Base.csv` (1,000,000 hồ sơ mở tài khoản ngân hàng)  
 **Ngày thực hiện:** Tháng 10/2026  

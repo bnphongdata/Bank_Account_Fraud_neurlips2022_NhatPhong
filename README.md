@@ -16,12 +16,16 @@ BAF/
 │
 ├── notebooks/                # Notebooks phân tích khám phá và chuyên sâu
 │   ├── 01_eda_and_cleaning.ipynb
-│   └── 02_fraud_deep_dive.ipynb
+│   ├── 02_fraud_deep_dive.ipynb
+│   └── 03_model_training_and_evaluation.ipynb
 │
 ├── src/                      # Module Python dùng chung
 │   ├── data/                 # Tiện ích đọc dữ liệu tối ưu qua PyArrow/DuckDB (load_data.py)
 │   ├── features/             # Xử lý sentinel và tạo biến đặc trưng (clean_and_engineer.py)
+│   ├── models/               # Pipeline huấn luyện và đánh giá mô hình ML
 │   └── visualization/        # Hàm vẽ biểu đồ và xuất báo cáo (visualize.py)
+│
+├── models/                   # Thư mục lưu trữ trọng số mô hình (.joblib, .json)
 │
 ├── reports/                  # Báo cáo phân tích và hình ảnh xuất bản
 │   ├── figures/              # Biểu đồ chất lượng cao xuất tự động
@@ -56,4 +60,9 @@ python -m src.features.clean_and_engineer
 ### 3. Xuất toàn bộ biểu đồ báo cáo
 ```powershell
 python -m src.visualization.generate_report_charts
+```
+
+### 4. Huấn luyện mô hình Machine Learning (LightGBM)
+```powershell
+python -m src.models.train_model
 ```
