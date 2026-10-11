@@ -1,38 +1,38 @@
 # Bank Account Fraud Analysis (NeurIPS 2022)
 
-Data analysis and fraud detection suite on the NeurIPS 2022 Bank Account Fraud (BAF) dataset.
+Dự án phân tích dữ liệu và phát hiện gian lận mở tài khoản ngân hàng dựa trên bộ dữ liệu NeurIPS 2022 (BAF).
 
 ---
 
-## Project Structure
+## Cấu trúc thư mục
 
 ```text
 BAF/
 │
 ├── data/
-│   ├── raw/                  # Raw source files (Base.csv, Variant I-V.csv)
-│   ├── processed/            # Cleaned Parquet exports (clean_base.parquet)
-│   └── external/             # Lookup dictionaries and metadata
+│   ├── raw/                  # Dữ liệu thô gốc (Base.csv, Variant I-V.csv)
+│   ├── processed/            # Dữ liệu sạch xuất định dạng Parquet (clean_base.parquet)
+│   └── external/             # Bảng tra cứu phụ, từ điển dữ liệu
 │
-├── notebooks/                # Exploratory analysis & deep-dive notebooks
+├── notebooks/                # Notebooks phân tích khám phá và chuyên sâu
 │   ├── 01_eda_and_cleaning.ipynb
 │   └── 02_fraud_deep_dive.ipynb
 │
-├── src/                      # Reusable modules
-│   ├── data/                 # Loading utilities with PyArrow/DuckDB (load_data.py)
-│   ├── features/             # Sentinel handling & feature engineering (clean_and_engineer.py)
-│   └── visualization/        # Plotting helpers and chart exports (visualize.py)
+├── src/                      # Module Python dùng chung
+│   ├── data/                 # Tiện ích đọc dữ liệu tối ưu qua PyArrow/DuckDB (load_data.py)
+│   ├── features/             # Xử lý sentinel và tạo biến đặc trưng (clean_and_engineer.py)
+│   └── visualization/        # Hàm vẽ biểu đồ và xuất báo cáo (visualize.py)
 │
-├── reports/                  # Analysis reports and exported figures
-│   ├── figures/              # Generated high-resolution charts
+├── reports/                  # Báo cáo phân tích và hình ảnh xuất bản
+│   ├── figures/              # Biểu đồ chất lượng cao xuất tự động
 │   └── fraud_analysis_report.md
 │
-├── sql/                      # Standalone SQL scripts (DuckDB / PostgreSQL)
+├── sql/                      # Truy vấn SQL độc lập (DuckDB / PostgreSQL)
 │   ├── 01_data_profiling.sql
 │   ├── 02_data_cleaning.sql
 │   └── 03_fraud_analysis_queries.sql
 │
-├── config/                   # Configuration files
+├── config/                   # Cấu hình dự án
 ├── .gitignore
 ├── requirements.txt
 └── README.md
@@ -40,20 +40,20 @@ BAF/
 
 ---
 
-## Getting Started
+## Hướng dẫn chạy dự án
 
-### 1. Environment Setup
+### 1. Kích hoạt môi trường và cài đặt thư viện
 ```powershell
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-### 2. Run Data Processing
+### 2. Chạy pipeline làm sạch và tạo đặc trưng
 ```powershell
 python -m src.features.clean_and_engineer
 ```
 
-### 3. Generate Report Charts
+### 3. Xuất toàn bộ biểu đồ báo cáo
 ```powershell
 python -m src.visualization.generate_report_charts
 ```

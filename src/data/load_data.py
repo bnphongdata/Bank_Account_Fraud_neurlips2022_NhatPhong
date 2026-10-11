@@ -10,6 +10,7 @@ PROCESSED_DATA_DIR = Path("data/processed")
 
 
 def get_available_datasets() -> list[str]:
+    """Lấy danh sách các tệp CSV hiện có trong data/raw/."""
     if not RAW_DATA_DIR.exists():
         return []
     return [f.name for f in RAW_DATA_DIR.glob("*.csv")]
@@ -21,10 +22,10 @@ def load_raw_dataset(
     optimize_memory: bool = True,
     sample_rows: int | None = None
 ) -> pd.DataFrame:
-    """Load BAF dataset from data/raw with optional pyarrow reader and dtype downcasting."""
+    """Đọc dữ liệu thô từ data/raw/ bằng PyArrow và tự động tối ưu kiểu dữ liệu."""
     file_path = RAW_DATA_DIR / dataset_name
     if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
+        raise FileNotFoundError(f"Không tìm thấy file: {file_path}")
 
     if use_arrow and sample_rows is None:
         table = pv.read_csv(str(file_path))
@@ -36,12 +37,12 @@ def load_raw_dataset(
         df = downcast_dtypes(df)
 
     mem_mb = df.memory_usage().sum() / (1024 ** 2)
-    print(f"Loaded {file_path.name}: {df.shape[0]:,} rows x {df.shape[1]} cols ({mem_mb:.1f} MB)")
+    print(f"Đã đọc {file_path.name}: {df.shape[0]:,} dòng x {df.shape[1]} cột ({mem_mb:.1f} MB)")
     return df
 
 
 def downcast_dtypes(df: pd.DataFrame) -> pd.DataFrame:
-    """Downcast numeric types and convert low-cardinality strings to category to reduce RAM."""
+    """Ép kiểu dữ liệu số và biến đổi các chuỗi ít giá trị sang category để giảm RAM."""
     for col in df.columns:
         col_type = df[col].dtype
         if col_type == "int64":
@@ -62,12 +63,12 @@ def downcast_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def query_duckdb(sql_query: str) -> pd.DataFrame:
-    """Helper to run DuckDB SQL queries directly on CSV/Parquet."""
+    """Thực thi câu truy vấn SQL trực tiếp qua DuckDB trên các tệp dữ liệu."""
     conn = duckdb.connect()
     return conn.execute(sql_query).df()
 
 
 if __name__ == "__main__":
-    print("Available raw files:", get_available_datasets())
+    print("Danh sách file thô:", get_available_datasets())
     sample_df = load_raw_dataset("Base.csv", sample_rows=1000)
     print(sample_df.head())

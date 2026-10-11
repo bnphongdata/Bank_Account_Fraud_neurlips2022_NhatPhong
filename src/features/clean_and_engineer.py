@@ -7,23 +7,23 @@ PROCESSED_DATA_DIR = Path("data/processed")
 
 
 def handle_sentinel_values(df: pd.DataFrame) -> pd.DataFrame:
-    """Handle -1 sentinels from BAF raw data and derive explicit presence flags."""
+    """Xử lý giá trị sentinel -1 từ dữ liệu thô BAF và tạo cờ nhận diện dữ liệu thiếu."""
     df = df.copy()
 
-    # Address history: -1 means no prior address recorded
+    # Lịch sử địa chỉ: -1 nghĩa là chưa từng đổi nơi ở hoặc không có thông tin
     df["has_prev_address"] = (df["prev_address_months_count"] != -1).astype("int8")
     df["clean_prev_address_months"] = df["prev_address_months_count"].replace(-1, np.nan)
     df["clean_current_address_months"] = df["current_address_months_count"].replace(-1, np.nan)
 
-    # Intended transfer balance: negative values represent no balance transfer requested
+    # Nhu cầu chuyển số dư nợ: giá trị âm là không đăng ký chuyển khoản
     df["has_intended_balcon"] = (df["intended_balcon_amount"] >= 0).astype("int8")
     df["clean_intended_balcon_amount"] = df["intended_balcon_amount"].apply(lambda x: max(0.0, x))
 
-    # Prior banking relationship: -1 means new customer with no prior account history
+    # Lịch sử ngân hàng: -1 là khách hàng mới hoàn toàn, chưa từng mở tài khoản
     df["has_prior_bank_account"] = (df["bank_months_count"] != -1).astype("int8")
     df["clean_bank_months"] = df["bank_months_count"].replace(-1, np.nan)
 
-    # Session length & device email count
+    # Thời lượng phiên và số lượng email theo thiết bị
     df["clean_session_length"] = df["session_length_in_minutes"].replace(-1, np.nan)
     df["clean_device_emails_8w"] = df["device_distinct_emails_8w"].replace(-1, 1)
 
@@ -31,24 +31,24 @@ def handle_sentinel_values(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Derive operational risk ratios and heuristic indicator flags."""
+    """Tạo các biến tỷ lệ rủi ro vận hành và cờ cảnh báo heuristics."""
     df = df.copy()
 
-    # Leverage proxy: proposed credit limit over scaled income
+    # Ước tính tỷ lệ đòn bẩy: hạn mức tín dụng đề xuất trên thu nhập
     df["credit_to_income_ratio"] = (df["proposed_credit_limit"] / (df["income"] * 10000 + 1e-5)).round(2)
 
-    # Velocity spike between 6h and 24h windows
+    # Tỷ lệ biến động tốc độ nộp hồ sơ giữa khung 6h và 24h
     df["velocity_surge_ratio"] = (df["velocity_6h"] / (df["velocity_24h"] + 1e-5)).round(3)
 
-    # Cohort age grouping
+    # Phân nhóm tuổi khách hàng
     age_bins = [0, 25, 35, 50, 65, 120]
     age_labels = ["18-25", "26-35", "36-50", "51-65", "65+"]
     df["age_group"] = pd.cut(df["customer_age"], bins=age_bins, labels=age_labels, right=True)
 
-    # Contactability check
+    # Kiểm tra khả năng liên lạc qua số điện thoại
     df["no_valid_phone"] = ((df["phone_home_valid"] == 0) & (df["phone_mobile_valid"] == 0)).astype("int8")
 
-    # High-risk profile heuristic: Windows user + Housing BA + no prior address history
+    # Cờ cảnh báo rủi ro cao: dùng Windows + nhóm cư trú BA + không có lịch sử địa chỉ
     df["high_risk_profile"] = (
         (df["device_os"] == "windows") & 
         (df["housing_status"] == "BA") & 
@@ -78,7 +78,7 @@ def process_and_save(dataset_name: str = "Base.csv", output_format: str = "parqu
         processed_df.to_csv(output_path, index=False)
 
     size_mb = output_path.stat().st_size / (1024 ** 2)
-    print(f"Saved processed output -> {output_path} ({size_mb:.1f} MB)")
+    print(f"Đã lưu tệp kết quả -> {output_path} ({size_mb:.1f} MB)")
     return output_path
 
 

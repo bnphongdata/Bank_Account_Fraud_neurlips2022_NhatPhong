@@ -1,4 +1,4 @@
--- Target label distribution and class imbalance
+-- Thống kê phân bố nhãn mục tiêu và mức độ mất cân bằng dữ liệu
 SELECT 
     COUNT(*) AS total_applications,
     SUM(fraud_bool) AS fraud_cases,
@@ -7,7 +7,7 @@ SELECT
     ROUND((COUNT(*) - SUM(fraud_bool)) * 1.0 / NULLIF(SUM(fraud_bool), 0), 1) AS imbalance_ratio
 FROM 'data/raw/Base.csv';
 
--- Application volume and fraud rate across months
+-- Khối lượng hồ sơ và tỷ lệ gian lận theo từng tháng
 SELECT 
     month,
     COUNT(*) AS total_applications,
@@ -17,7 +17,7 @@ FROM 'data/raw/Base.csv'
 GROUP BY month
 ORDER BY month ASC;
 
--- BAF encodes missing values as -1 (or negative values for balance transfers)
+-- Bộ dữ liệu BAF mã hóa giá trị thiếu dưới dạng -1 (hoặc số âm với trường chuyển số dư)
 SELECT 
     COUNT(*) AS total_records,
     COUNT(CASE WHEN prev_address_months_count = -1 THEN 1 END) AS missing_prev_address_count,
@@ -36,7 +36,7 @@ SELECT
     ROUND(COUNT(CASE WHEN device_distinct_emails_8w = -1 THEN 1 END) * 100.0 / COUNT(*), 2) AS missing_device_emails_pct
 FROM 'data/raw/Base.csv';
 
--- Core numerical feature bounds
+-- Khoảng giá trị các đặc trưng số quan trọng
 SELECT 
     'income' AS metric,
     MIN(income) AS min_val,
