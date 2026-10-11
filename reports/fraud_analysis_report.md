@@ -1,91 +1,105 @@
-# BÁO CÁO PHÂN TÍCH DỮ LIỆU & PHÁT HIỆN GIAN LẬN MỞ TÀI KHOẢN NGÂN HÀNG
-**Dự án:** Bank Account Fraud (NeurIPS 2022)  
-**Tập dữ liệu:** `Base.csv` (1,000,000 hồ sơ mở tài khoản ngân hàng)  
-**Ngày thực hiện:** Tháng 10/2026  
+# Báo Cáo Phân Tích Dữ Liệu Gian Lận Mở Tài Khoản Ngân Hàng
+Bộ dữ liệu: Bank Account Fraud (NeurIPS 2022) | 1,000,000 hồ sơ đăng ký  
+Người thực hiện: Bùi Nhất Phong 
 
 ---
 
-## 1. TỔNG QUAN DỮ LIỆU & VẤN ĐỀ NGHIỆP VỤ (EXECUTIVE SUMMARY)
+## 1. Bài toán thực tế: Cái khó của việc tìm gian lận mở tài khoản
 
-- **Quy mô tập dữ liệu:** 1,000,000 hồ sơ đăng ký mở tài khoản ngân hàng trực tuyến.
-- **Tỷ lệ gian lận cơ sở (Base Fraud Rate):** **1.103%** (11,029 hồ sơ gian lận / 988,971 hồ sơ hợp lệ).
-- **Mức độ mất cân bằng nhãn (Imbalance Ratio):** Xấp xỉ **1:90** (cứ 90 đơn hợp lệ mới có 1 đơn gian lận). Đây là thách thức điển hình trong bài toán Fraud Analytics và Credit Risk.
-- **Khoảng thời gian:** 8 tháng (Tháng 0 đến Tháng 7).
+Mở tài khoản trực tuyến (eKYC) giúp ngân hàng tiếp cận lượng lớn khách hàng mới trong thời gian ngắn. Tuy nhiên, việc không gặp mặt trực tiếp cũng kéo theo bài toán nhức nhối: gian lận mở tài khoản (application fraud) và danh tính giả mạo (synthetic identity).
 
----
+Khi nhìn vào con số thực tế từ 1 triệu hồ sơ nộp về trong 8 tháng (từ tháng 0 đến tháng 7):
+- Toàn bộ tập dữ liệu chỉ có 11,029 hồ sơ gian lận, chiếm khoảng 1.10%.
+- Cứ khoảng 90 người nộp hồ sơ thì chỉ có 1 kẻ lừa đảo, còn 89 người còn lại là khách hàng chân chính.
 
-## 2. QUY TRÌNH LÀM SẠCH DỮ LIỆU (DATA CLEANING PIPELINE)
-
-### 2.1 Phát hiện giá trị Sentinel (-1)
-Tập dữ liệu NeurIPS BAF không dùng `NULL` chuẩn mà mã hóa dữ liệu thiếu thông qua giá trị `-1`:
-1. `prev_address_months_count = -1` (**71.29%**): Khách hàng không có lịch sử địa chỉ cũ (chưa từng chuyển nhà hoặc thiếu thông tin khai báo).
-2. `intended_balcon_amount < 0` (**74.25%**): Khách hàng không có nhu cầu chuyển số dư nợ từ ngân hàng khác sang.
-3. `bank_months_count = -1` (**25.36%**): Khách hàng mới (New-to-Bank), chưa từng có tài khoản trước đây.
-4. `session_length_in_minutes < 0` (**0.20%**): Lỗi theo dõi phiên truy cập.
-
-### 2.2 Xử lý và Kỹ thuật Đặc trưng (Feature Engineering)
-- Tạo cờ nhị phân (Binary Missing Flags): `has_prev_address`, `has_intended_balcon`, `has_prior_bank_account`.
-- Chuyển đổi các trường sentinel sang `NaN` để tránh làm sai lệch mô hình thống kê / mô hình cây.
-- Tạo các tỷ lệ rủi ro:
-  - `credit_to_income_ratio`: Tỷ lệ hạn mức tín dụng đề xuất trên thu nhập ước tính.
-  - `velocity_surge_ratio`: Tỷ lệ gia tăng tốc độ đơn (`velocity_6h` / `velocity_24h`).
-  - `no_valid_phone`: Cờ cắm hồ sơ không có cả điện thoại bàn lẫn điện thoại di động hợp lệ.
-  - `age_group`: Phân nhóm độ tuổi (`18-25`, `26-35`, `36-50`, `51-65`, `65+`).
-
-### 2.3 Hiệu quả lưu trữ & Định dạng xuất bản
-- Dữ liệu sạch sau khi qua pipeline xử lý sentinel và tạo biến đặc trưng được xuất ra file `data/processed/clean_base.csv` phục vụ phân tích.
+Cái khó lớn nhất trong bài toán này không nằm ở công nghệ, mà nằm ở sự cân bằng giữa trải nghiệm người dùng và quản trị rủi ro:
+- Nếu đặt ra quá nhiều câu hỏi, bắt xác minh phức tạp để chặn sạch gian lận, 89 khách hàng tốt sẽ thấy phiền toái và bỏ sang ngân hàng khác.
+- Ngược lại, nếu thả lỏng để duyệt nhanh cho khách hàng, chỉ cần lọt lưới 1% kẻ xấu cũng đủ gây thất thoát hàng chục tỷ đồng nợ xấu khi chúng chiếm đoạt hạn mức thẻ tín dụng rồi bốc hơi.
 
 ---
 
-## 3. CÁC PHÁT HIỆN CHUYÊN SÂU (KEY ANALYTICAL INSIGHTS)
+## 2. Dữ liệu thực tế cho chúng ta thấy những gì?
 
-### 3.1 Xu hướng gian lận theo thời gian (Monthly Trend)
-- Tỷ lệ gian lận có xu hướng **tăng dần theo thời gian**:
-  - Tháng 2: **0.875%** (Thấp nhất)
-  - Tháng 6: **1.341%**
-  - Tháng 7: **1.475%** (Tăng **68%** so với tháng 2).
-- *Khuyến nghị:* Các băng nhóm gian lận có dấu hiệu thích nghi và khai thác các kẽ hở onboarding sau các đợt phát hành sản phẩm.
+Sau khi làm sạch 1 triệu dòng dữ liệu và bóc tách các đặc trưng, có 3 điểm đáng chú ý nhất về hành vi của kẻ gian:
 
-### 3.2 Dấu chân thiết bị (Device OS Risk)
-- **Windows:** Tỷ lệ gian lận lên tới **2.469%** (cao gấp **4.8 lần** so với Linux: 0.515% và cao hơn nhiều so với Macintosh: 1.397%).
-- Phần lớn các công cụ tự động hóa hoặc máy ảo gian lận được vận hành trên nền tảng Windows.
+### Gian lận có xu hướng leo thang qua các tháng
+Tỷ lệ gian lận không đứng yên mà tăng đều theo thời gian:
+- Tháng 2 có tỷ lệ gian lận thấp nhất, chỉ 0.88%.
+- Nhưng đến tháng 6 và tháng 7, con số này nhảy lên 1.34% và 1.48% (tăng gần 70% so với tháng 2).
 
-### 3.3 Tình trạng cư trú (Housing Status)
-- Nhóm `housing_status = 'BA'` có tỷ lệ gian lận đột biến: **3.747%** (cao gấp hơn **3.4 lần** tỷ lệ cơ sở và cao gấp 10 lần so với nhóm `BE`: 0.344%).
+Điều này phản ánh một thực tế quen thuộc trong ngành: những tháng đầu ra mắt sản phẩm hoặc luồng mở tài khoản mới, kẻ gian thường nộp thăm dò. Khi phát hiện ra các quy tắc kiểm duyệt tự động còn lỏng lẻo ở khâu nào, chúng sẽ tổ chức nộp ồ ạt ở các tháng sau.
 
-### 3.4 Định danh Email & Tên khách hàng (Identity Consistency)
-- Khách hàng có độ tương đồng tên và email thấp (`name_email_similarity < 0.2`) kết hợp sử dụng nhà cung cấp email miễn phí (`email_is_free = 1`) có tỷ lệ gian lận cao hơn rõ rệt so với nhóm dùng email tổ chức/doanh nghiệp.
+### Kẻ gian thường dùng máy tính hơn là điện thoại
+Hệ điều hành thiết bị là yếu tố phân hóa rủi ro rất rõ:
+- Hồ sơ nộp từ máy tính Windows có tỷ lệ gian lận lên tới 2.47%, cao gấp gần 5 lần so với Linux (0.51%) và gần gấp đôi MacOS (1.40%).
+- Lý do thực tế: Các đối tượng gian lận chuyên nghiệp hiếm khi ngồi thao tác bằng tay trên từng chiếc điện thoại. Chúng thường ngồi máy tính chạy các tool giả lập, dùng bot điền form tự động hàng loạt hoặc dùng máy ảo để thay đổi thông số mạng.
 
----
+### Dấu hiệu của những danh tính chắp vá
+Khi đối soát thông tin cá nhân và nơi ở của người nộp đơn:
+- Nhóm hồ sơ khai báo tình trạng nhà ở mã BA có tỷ lệ gian lận 3.75%, cao gấp hơn 3 lần mức bình thường.
+- Đáng ngờ hơn, nếu hồ sơ vừa thuộc nhóm BA vừa hoàn toàn không có lịch sử địa chỉ cũ, tỷ lệ gian lận vọt lên tới 7.29% (gấp hơn 6.6 lần tỷ lệ thông thường).
+- Những hồ sơ này thường đi kèm với tên email không mấy liên quan đến họ tên, dùng nhà cung cấp email miễn phí và có địa chỉ IP từ nước ngoài.
 
-## 4. BỘ QUY TẮC PHÁT HIỆN GIAN LẬN ĐỀ XUẤT (HEURISTIC FRAUD RULES)
-
-| Quy tắc (Rule Heuristic) | Mô tả điều kiện | Số đơn kích hoạt | Gian lận bắt được | Tỷ lệ chính xác (Precision) | Lift (So với Baseline 1.10%) |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **Rule 1: Suspect Device & Residence** | `device_os = 'windows'` VÀ `housing_status = 'BA'` VÀ `has_prev_address = 0` | 43,509 | 3,170 | **7.29%** | **6.6x** |
-| **Rule 2: Disposable Foreign Identity** | `name_email_similarity < 0.3` VÀ `email_is_free = 1` VÀ `foreign_request = 1` | 4,124 | 152 | **3.69%** | **3.3x** |
-| **Rule 3: Ghost Applicant** | `has_prior_bank_account = 0` VÀ `no_valid_phone = 1` | 10,574 | 380 | **3.59%** | **3.2x** |
+Đây là chân dung kinh điển của dạng danh tính chắp vá: kẻ gian lấy tên của một người, ghép với số điện thoại rác và địa chỉ mới đăng ký để qua mặt bước tra cứu tín dụng ban đầu, sau đó chiếm đoạt hạn mức rồi bỏ mặc tài khoản.
 
 ---
 
-## 5. HỆ THỐNG BIỂU ĐỒ TRỰC QUAN ĐÃ XUẤT BẢN
+## 3. Từ những quy tắc thủ công đến mô hình máy học
 
-Các biểu đồ chất lượng cao đã được tự động lưu trong thư mục `reports/figures/`:
-1. `fraud_trend_by_month.png`: Xu hướng tỷ lệ gian lận qua 8 tháng.
-2. `device_os_fraud_rate.png`: So sánh tỷ lệ gian lận và khối lượng hồ sơ theo hệ điều hành.
-3. `housing_status_fraud_rate.png`: Rủi ro theo tình trạng nhà ở.
-4. `employment_status_fraud_rate.png`: Rủi ro theo nhóm việc làm.
-5. `age_group_fraud_rate.png`: Phân tích rủi ro theo độ tuổi.
-6. `correlation_heatmap.png`: Ma trận tương quan giữa các biến số chính.
-7. `fraud_rules_comparison.png`: Đánh giá hiệu quả của các Rule Heuristic.
+### Giới hạn của việc bắt gian lận bằng quy tắc cứng (Rules)
+Ban đầu, đội vận hành có thể nghĩ đến việc viết vài câu lệnh điều kiện đơn giản:
+- Quy tắc 1: Nếu dùng Windows, nhà ở nhóm BA và không có địa chỉ cũ thì đánh dấu nghi vấn. Quy tắc này bắt được 3,170 vụ gian lận, độ chính xác đạt 7.29%.
+- Quy tắc 2: Tên email lệch họ tên, dùng email miễn phí và truy cập từ IP nước ngoài thì đánh dấu nghi vấn. Quy tắc này bắt được 152 vụ, độ chính xác 3.69%.
+
+Vấn đề là các quy tắc cứng này chỉ bắt được những trường hợp quá lộ liễu. Kẻ gian chỉ cần đổi loại thiết bị hoặc mượn một địa chỉ khác là lọt lưới ngay. Chúng ta không thể ngồi viết hàng trăm quy tắc thủ công để bao quát hết 44 thuộc tính của một hồ sơ.
+
+### Hiệu quả thực tế của mô hình LightGBM
+Thay vì dùng quy tắc tĩnh, chúng tôi xây dựng mô hình phân lớp LightGBM trên 44 biến đặc trưng. Mô hình được huấn luyện trên dữ liệu 6 tháng đầu (tháng 0 đến 5) và đem kiểm tra độc lập trên 96,843 hồ sơ của tháng 7 (tập kiểm thử ngoài thời gian):
+
+- Chỉ số ROC-AUC đạt 0.8933, cho thấy mô hình phân tách hồ sơ tốt và xấu rất sắc bén.
+- Chỉ số Recall tại ngưỡng FPR 5% đạt 55.32%: chỉ cần đội ngũ thẩm định kiểm tra kỹ 5% số hồ sơ bị mô hình chấm điểm rủi ro cao nhất, chúng ta đã chặn đứng được hơn một nửa (790 trong tổng số 1,428 vụ gian lận của tháng 7).
+- Độ chính xác (Precision) đạt 14.22%: trong top 5% hồ sơ bị cảnh báo, cứ khoảng 7 hồ sơ sẽ tóm trúng 1 hồ sơ gian lận (cao gấp 10 lần so với việc kiểm tra ngẫu nhiên).
+- Quan trọng nhất là 95% khách hàng bình thường còn lại hoàn toàn không bị làm phiền, được duyệt nhanh chóng mà không gặp trở ngại nào.
 
 ---
 
-## 6. KHUYẾN NGHỊ VẬN HÀNH (OPERATIONAL RECOMMENDATIONS)
+## 4. Đề xuất quy trình xử lý thực tế cho ngân hàng (3 Luồng phê duyệt)
 
-1. **Step-up Authentication / KYC tăng cường:**
-   - Khi hồ sơ kích hoạt **Rule 1** (Thiết bị Windows + Nhà ở nhóm BA + Không có địa chỉ cũ), hệ thống không nên duyệt tự động mà cần chuyển sang luồng eKYC nâng cao (xác thực sinh trắc học khuôn mặt qua video hoặc yêu cầu nộp hóa đơn điện nước/chứng minh nơi ở).
-2. **Kiểm tra OTP & Thiết bị:**
-   - Chặn các đơn đăng ký có `foreign_request = 1` khi khai báo thông tin nội địa nếu không có giải trình cư trú hợp lệ.
-3. **Mô hình hóa ML kết hợp:**
-   - Sử dụng tập dữ liệu đã làm sạch `data/processed/clean_base.csv` để huấn luyện các thuật toán phân lớp gradient boosting (LightGBM / XGBoost / CatBoost) tối ưu hóa theo chỉ số **PR-AUC** hoặc **Recall tại ngưỡng FPR = 5%**.
+Trên môi trường thực tế, không nên dùng một ngưỡng cắt cứng (như xác suất trên 0.5 là từ chối). Thay vào đó, chúng tôi đề xuất phân thành 3 luồng dựa trên điểm xác suất rủi ro P do mô hình trả về:
+
+```text
+               [Hồ sơ đăng ký mở tài khoản]
+                             │
+                  [Mô hình chấm điểm P]
+                             │
+       ┌─────────────────────┼─────────────────────┐
+       ▼                     ▼                     ▼
+   P < 0.15           0.15 <= P < 0.65          P >= 0.65
+   Luồng Xanh            Luồng Vàng             Luồng Đỏ
+ (Chiếm ~92% đơn)      (Chiếm ~6% đơn)       (Chiếm ~2% đơn)
+       │                     │                     │
+ Duyệt tự động         Xác thực thêm         Từ chối thẳng
+  (Dưới 2 phút)     (Video call, chip CCCD)   (Vào danh sách đen)
+```
+
+1. Luồng Xanh (Rủi ro rất thấp - chiếm khoảng 92% hồ sơ): Khách hàng có thông tin nhất quán, thiết bị tin cậy. Phê duyệt tự động và cấp tài khoản ngay trong vòng 2 phút.
+2. Luồng Vàng (Cần kiểm tra thêm - chiếm khoảng 6% hồ sơ): Hồ sơ có một số điểm bất thường nhưng chưa đủ căn cứ để kết luận lừa đảo. Hệ thống kích hoạt bước xác thực bổ sung: yêu cầu quay video nhận diện khuôn mặt trực tiếp (liveness detection), quét NFC căn cước công dân gắn chip hoặc yêu cầu cung cấp hóa đơn sinh hoạt.
+3. Luồng Đỏ (Rủi ro rất cao - chiếm khoảng 2% hồ sơ): Các trường hợp điểm rủi ro vượt ngưỡng an toàn. Từ chối ngay lập tức, chặn thiết bị và lưu vào danh sách đen để phòng ngừa các đợt tấn công tiếp theo.
+
+---
+
+## 5. Kết luận
+
+Bằng cách chuyển từ các quy tắc thủ công sang mô hình học máy phân tầng, ngân hàng giải quyết được hai mục tiêu tưởng chừng đối nghịch:
+1. Bảo vệ dòng vốn: Chặn trước hơn một nửa số vụ gian lận mở thẻ hoặc vay thấu chi ngay từ vòng đăng ký ban đầu.
+2. Giữ chân khách hàng: Đảm bảo hơn 90% khách hàng lương thiện được trải nghiệm dịch vụ mở tài khoản trực tuyến mượt mà, nhanh gọn.
+
+---
+
+## 6. Các tài nguyên sẵn có trong dự án
+
+- Dữ liệu sạch đã qua tiền xử lý: data/processed/clean_base.csv
+- Mã nguồn huấn luyện: src/models/train_model.py và src/models/evaluate.py
+- File mô hình đã huấn luyện: models/lgbm_fraud_model.joblib
+- Biểu đồ trực quan: Nằm trong thư mục reports/figures/ (bao gồm biểu đồ xu hướng theo tháng, phân bố thiết bị, ma trận tương quan, biểu đồ đặc trưng quan trọng và đường cong ROC/PR)
+- Notebooks chạy thử: notebooks/01_eda_and_cleaning.ipynb, notebooks/02_fraud_deep_dive.ipynb, notebooks/03_model_training_and_evaluation.ipynb
