@@ -1,9 +1,3 @@
-"""
-Module: src.data.load_data
-Mô tả: Tải và nạp dữ liệu Bank Account Fraud (NeurIPS 2022) với hiệu năng cao,
-       tối ưu hóa bộ nhớ RAM và hỗ trợ đọc trực tiếp nhiều tập dữ liệu (Base & Variants).
-"""
-
 from pathlib import Path
 import os
 import pandas as pd
@@ -11,13 +5,11 @@ import duckdb
 import pyarrow.csv as pv
 import pyarrow as pa
 
-# Thư mục gốc dữ liệu
 RAW_DATA_DIR = Path("data/raw")
 PROCESSED_DATA_DIR = Path("data/processed")
 
 
 def get_available_datasets() -> list[str]:
-    """Liệt kê danh sách các file dữ liệu có trong data/raw/."""
     if not RAW_DATA_DIR.exists():
         return []
     return [f.name for f in RAW_DATA_DIR.glob("*.csv")]
@@ -29,23 +21,10 @@ def load_raw_dataset(
     optimize_memory: bool = True,
     sample_rows: int | None = None
 ) -> pd.DataFrame:
-    """
-    Tải tập dữ liệu từ data/raw/ sử dụng PyArrow để đạt tốc độ cao nhất (1M dòng < 2 giây).
-    
-    Args:
-        dataset_name: Tên file (ví dụ: 'Base.csv', 'Variant I.csv')
-        use_arrow: Sử dụng pyarrow engine thay vì pandas thuần
-        optimize_memory: Tối ưu kiểu dữ liệu số nguyên và số thực để tiết kiệm RAM
-        sample_rows: Số dòng nạp thử nghiệm (None nếu nạp toàn bộ)
-    
-    Returns:
-        pd.DataFrame chứa dữ liệu
-    """
+    """Load BAF dataset from data/raw with optional pyarrow reader and dtype downcasting."""
     file_path = RAW_DATA_DIR / dataset_name
     if not file_path.exists():
-        raise FileNotFoundError(f"Không tìm thấy file: {file_path}")
-
-    print(f"[*] Đang tải dữ liệu từ {file_path}...")
+        raise FileNotFoundError(f"File not found: {file_path}")
 
     if use_arrow and sample_rows is None:
         table = pv.read_csv(str(file_path))
@@ -56,15 +35,13 @@ def load_raw_dataset(
     if optimize_memory:
         df = downcast_dtypes(df)
 
-    print(f"[✓] Đã tải thành công: {df.shape[0]:,} dòng | {df.shape[1]} cột")
-    print(f"[i] Dung lượng RAM: {df.memory_usage().sum() / (1024**2):.2f} MB")
+    mem_mb = df.memory_usage().sum() / (1024 ** 2)
+    print(f"Loaded {file_path.name}: {df.shape[0]:,} rows x {df.shape[1]} cols ({mem_mb:.1f} MB)")
     return df
 
 
 def downcast_dtypes(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Giảm kích thước bộ nhớ bằng cách downcast các kiểu dữ liệu int64 sang int32/int16, float64 sang float32.
-    """
+    """Downcast numeric types and convert low-cardinality strings to category to reduce RAM."""
     for col in df.columns:
         col_type = df[col].dtype
         if col_type == "int64":
@@ -85,14 +62,12 @@ def downcast_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def query_duckdb(sql_query: str) -> pd.DataFrame:
-    """
-    Thực thi truy vấn SQL trực tiếp qua DuckDB trên các file CSV hoặc view.
-    """
+    """Helper to run DuckDB SQL queries directly on CSV/Parquet."""
     conn = duckdb.connect()
     return conn.execute(sql_query).df()
 
 
 if __name__ == "__main__":
-    print("Các tập dữ liệu sẵn có:", get_available_datasets())
+    print("Available raw files:", get_available_datasets())
     sample_df = load_raw_dataset("Base.csv", sample_rows=1000)
     print(sample_df.head())

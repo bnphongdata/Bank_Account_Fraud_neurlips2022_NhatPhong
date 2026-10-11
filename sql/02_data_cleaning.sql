@@ -1,22 +1,14 @@
--- ==============================================================================
--- 02_DATA_CLEANING.SQL
--- Dự án: Bank Account Fraud Detection (NeurIPS 2022)
--- Mô tả: Làm sạch dữ liệu, xử lý giá trị Sentinel (-1), chuẩn hóa định dạng và tạo cờ cắm (flags)
--- ==============================================================================
-
--- Tạo bảng hoặc View sạch (Clean View)
+-- Clean view: converts -1 sentinels into explicit presence flags and NULLs, derives operational risk ratios
 CREATE OR REPLACE VIEW v_cleaned_baf AS
 SELECT
     fraud_bool,
     month,
     
-    -- 1. Thu nhập và rủi ro tín dụng
     income,
     credit_risk_score,
     proposed_credit_limit,
     ROUND(proposed_credit_limit / NULLIF(income * 10000, 0), 2) AS credit_to_income_ratio,
 
-    -- 2. Độ tuổi và phân nhóm khách hàng
     customer_age,
     CASE 
         WHEN customer_age <= 25 THEN '18-25'
@@ -26,32 +18,32 @@ SELECT
         ELSE '65+'
     END AS age_group,
 
-    -- 3. Xử lý dữ liệu địa chỉ (Sentinel -1)
+    -- Address tenure & history
     CASE WHEN prev_address_months_count = -1 THEN 0 ELSE 1 END AS has_prev_address_history,
     CASE WHEN prev_address_months_count = -1 THEN NULL ELSE prev_address_months_count END AS clean_prev_address_months,
     CASE WHEN current_address_months_count = -1 THEN NULL ELSE current_address_months_count END AS clean_current_address_months,
 
-    -- 4. Xử lý lịch sử tài khoản ngân hàng và chuyển khoản số dư (Sentinel < 0)
+    -- Prior bank relationship and balance transfer
     CASE WHEN bank_months_count = -1 THEN 0 ELSE 1 END AS has_prior_bank_account,
     CASE WHEN bank_months_count = -1 THEN NULL ELSE bank_months_count END AS clean_bank_months,
     
     CASE WHEN intended_balcon_amount < 0 THEN 0 ELSE 1 END AS has_intended_balcon,
     CASE WHEN intended_balcon_amount < 0 THEN 0.0 ELSE intended_balcon_amount END AS clean_intended_balcon_amount,
 
-    -- 5. Định danh & Độ tin cậy thông tin liên lạc
+    -- Applicant identity verification
     name_email_similarity,
     email_is_free,
     phone_home_valid,
     phone_mobile_valid,
     (phone_home_valid = 0 AND phone_mobile_valid = 0) AS has_no_valid_phone,
 
-    -- 6. Tốc độ đơn đăng ký (Velocity features)
+    -- Velocity & short-term spike
     velocity_6h,
     velocity_24h,
     velocity_4w,
     ROUND(velocity_6h / NULLIF(velocity_24h, 0), 3) AS velocity_surge_ratio,
 
-    -- 7. Phiên duyệt web và thiết bị (Device & Session)
+    -- Session & device attributes
     CASE WHEN session_length_in_minutes < 0 THEN NULL ELSE session_length_in_minutes END AS clean_session_length,
     keep_alive_session,
     device_os,
@@ -60,7 +52,6 @@ SELECT
     CASE WHEN device_distinct_emails_8w = -1 THEN 1 ELSE device_distinct_emails_8w END AS clean_device_distinct_emails_8w,
     device_fraud_count,
 
-    -- 8. Phân loại hình thức thanh toán & việc làm
     payment_type,
     employment_status,
     housing_status,
@@ -68,7 +59,7 @@ SELECT
 
 FROM 'data/raw/Base.csv';
 
--- Kiểm tra kiểm thử view vừa tạo
+-- Quick sanity check
 SELECT 
     COUNT(*) AS total_clean_rows,
     SUM(fraud_bool) AS total_fraud,

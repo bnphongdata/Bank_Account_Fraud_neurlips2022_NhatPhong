@@ -1,12 +1,4 @@
--- ==============================================================================
--- 03_FRAUD_ANALYSIS_QUERIES.SQL
--- Dự án: Bank Account Fraud Detection (NeurIPS 2022)
--- Mô tả: Các câu truy vấn phân tích chuyên sâu các mô hình gian lận (Fraud Patterns & Insights)
--- ==============================================================================
-
--- ------------------------------------------------------------------------------
--- INSIGHT 1: Phân tích tỷ lệ gian lận theo Hệ điều hành (Device OS) & Nguồn (Source)
--- ------------------------------------------------------------------------------
+-- Device OS vs onboarding source
 SELECT 
     device_os,
     source,
@@ -18,10 +10,7 @@ FROM 'data/raw/Base.csv'
 GROUP BY device_os, source
 ORDER BY fraud_rate_pct DESC;
 
-
--- ------------------------------------------------------------------------------
--- INSIGHT 2: Ma trận rủi ro giữa Tình trạng nhà ở (Housing Status) & Việc làm
--- ------------------------------------------------------------------------------
+-- Housing status and employment cross-tabulation
 SELECT 
     housing_status,
     employment_status,
@@ -34,18 +23,14 @@ HAVING COUNT(*) > 1000
 ORDER BY fraud_rate_pct DESC
 LIMIT 15;
 
-
--- ------------------------------------------------------------------------------
--- INSIGHT 3: Tương quan giữa Độ tương đồng Tên - Email và Loại Email (Free vs Corporate)
--- Giả thuyết: Gian lận thường dùng email rác (similarity thấp) hoặc email miễn phí
--- ------------------------------------------------------------------------------
+-- Name-email similarity bucketed with email domain type
 SELECT 
     CASE 
-        WHEN name_email_similarity < 0.2 THEN '0.0 - 0.2 (Rất thấp)'
-        WHEN name_email_similarity < 0.4 THEN '0.2 - 0.4 (Thấp)'
-        WHEN name_email_similarity < 0.6 THEN '0.4 - 0.6 (Trung bình)'
-        WHEN name_email_similarity < 0.8 THEN '0.6 - 0.8 (Khá)'
-        ELSE '0.8 - 1.0 (Rất cao)'
+        WHEN name_email_similarity < 0.2 THEN '< 0.2'
+        WHEN name_email_similarity < 0.4 THEN '0.2 - 0.4'
+        WHEN name_email_similarity < 0.6 THEN '0.4 - 0.6'
+        WHEN name_email_similarity < 0.8 THEN '0.6 - 0.8'
+        ELSE '>= 0.8'
     END AS similarity_tier,
     email_is_free,
     COUNT(*) AS total_apps,
@@ -55,10 +40,7 @@ FROM 'data/raw/Base.csv'
 GROUP BY 1, 2
 ORDER BY 1, 2;
 
-
--- ------------------------------------------------------------------------------
--- INSIGHT 4: Tốc độ đơn nộp (Velocity 6h vs Velocity 24h) & Dấu hiệu tấn công Bots/Syndicate
--- ------------------------------------------------------------------------------
+-- 6-hour velocity volume distribution
 SELECT 
     CASE 
         WHEN velocity_6h < 2000 THEN 'Low (<2k)'
@@ -73,20 +55,12 @@ FROM 'data/raw/Base.csv'
 GROUP BY 1
 ORDER BY fraud_rate_pct DESC;
 
-
--- ------------------------------------------------------------------------------
--- INSIGHT 5: Top Rule Heuristic phát hiện gian lận độ chính xác cao (High Precision Rules)
--- ------------------------------------------------------------------------------
+-- Heuristic rules precision and trigger volume evaluation
 WITH scored_applications AS (
     SELECT 
         fraud_bool,
-        -- Rule 1: Thiết bị Windows + Housing 'BA' + Không có lịch sử địa chỉ cũ
         (device_os = 'windows' AND housing_status = 'BA' AND prev_address_months_count = -1) AS rule_suspect_device_residence,
-        
-        -- Rule 2: Tên email không khớp (<0.3) + Email miễn phí + Yêu cầu từ nước ngoài
         (name_email_similarity < 0.3 AND email_is_free = 1 AND foreign_request = 1) AS rule_disposable_identity,
-
-        -- Rule 3: Không có tài khoản cũ + Không có số điện thoại hợp lệ
         (bank_months_count = -1 AND phone_home_valid = 0 AND phone_mobile_valid = 0) AS rule_ghost_applicant
     FROM 'data/raw/Base.csv'
 )
